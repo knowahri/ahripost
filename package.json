@@ -1,0 +1,62 @@
+{
+    "name": "ahripost",
+    "version": "0.0.0",
+    "main": "main.js",
+    "homepage": "https://post.ahriknow.com/",
+    "author": {
+        "name": "ahriknow",
+        "url": "https://www.ahriknow.com/",
+        "email": "ahriknow@ahriknow.com"
+    },
+    "license": "MIT",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "serve": "vite preview",
+        "e:dev": "electron .",
+        "e:build": "electron-packager ./ ahripost --platform=linux --out ./app --electron-version 13.5.2 --overwrite --icon=./icons/icon.ico",
+        "e:buildall": "electron-packager ./ ahripost --all --out ./app --electron-version 13.5.2 --overwrite --icon=./icons/icon.ico",
+        "e:b": "electron-builder build"
+    },
+    "dependencies": {
+        "vue": "^3.2.16"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^1.9.3",
+        "electron": "^15.3.0",
+        "electron-builder": "^22.13.1",
+        "naive-ui": "^2.20.0",
+        "vfonts": "^0.1.0",
+        "vite": "^2.6.4"
+    },
+    "build": {
+        "productName": "AhriPost",
+        "appId": "com.ahriknow.post",
+        "copyright": "ahriknow",
+        "directories": {
+            "output": "build"
+        },
+        "linux": {
+            "category": "Development",
+            "icon": "icons/icon.png",
+            "target": [
+                "AppImage",
+                "apk",
+                "deb",
+                "pacman"
+            ]
+        }
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowElevation": true,
+        "allowToChangeInstallationDirectory": true,
+        "installerIcon": "./icons/icon.ico",
+        "uninstallerIcon": "./icons/icon.ico",
+        "installerHeaderIcon": "./icons/icon.ico",
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "AhriPost",
+        "include": "script/installer.nsh"
+    }
+}
