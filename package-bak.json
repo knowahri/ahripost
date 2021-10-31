@@ -46,6 +46,16 @@
                     "target": "nsis"
                 }
             ]
+        },
+        "linux": {
+            "category": "Development",
+            "icon": "icons/icon.png",
+            "target": [
+                "AppImage",
+                "apk",
+                "deb",
+                "pacman"
+            ]
         }
     },
     "nsis": {
