@@ -15,7 +15,8 @@ class Indexed {
                     db.createObjectStore('project', { keyPath: '_id' })
                 }
                 if (!db.objectStoreNames.contains('api')) {
-                    db.createObjectStore('api', { keyPath: '_id' })
+                    let objectStore = db.createObjectStore('api', { keyPath: '_id' })
+                    objectStore.createIndex('project', 'project', { unique: false });
                 }
                 if (!db.objectStoreNames.contains('expand')) {
                     db.createObjectStore('expand', { keyPath: '_id' })
@@ -64,6 +65,21 @@ class Indexed {
             let request = db.transaction([tbname], 'readwrite')
                 .objectStore(tbname)
                 .get(_id)
+            request.onsuccess = e => {
+                resolve(e.target.result)
+            }
+            request.onerror = () => {
+                reject('Failed!')
+            }
+        })
+    }
+
+    async findMany(tbname, where) {
+        return new Promise(async (resolve, reject) => {
+            let db = await this.open()
+            let request = db.transaction([tbname], 'readwrite')
+                .objectStore(tbname).index(where.key)
+                .getAll(where.value)
             request.onsuccess = e => {
                 resolve(e.target.result)
             }

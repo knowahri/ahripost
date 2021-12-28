@@ -1,6 +1,6 @@
 {
     "name": "ahripost",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "main": "main.js",
     "homepage": "https://post.ahriknow.com/",
     "author": {
@@ -20,7 +20,9 @@
     },
     "dependencies": {
         "axios": "^0.24.0",
+        "electron-updater": "^4.3.9",
         "express": "^4.17.1",
+        "monaco-editor": "^0.29.1",
         "vue": "^3.2.16"
     },
     "devDependencies": {
@@ -36,6 +38,12 @@
         "productName": "AhriPost",
         "appId": "com.ahriknow.post",
         "copyright": "ahriknow",
+        "publish": [
+            {
+                "provider": "generic",
+                "url": "http://127.0.0.1:5500/build/"
+            }
+        ],
         "directories": {
             "output": "build"
         },
@@ -43,21 +51,28 @@
             "icon": "icons/icon.ico",
             "target": [
                 {
-                    "target": "nsis"
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "ia32"
+                    ]
                 }
             ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": true,
+            "allowElevation": true,
+            "allowToChangeInstallationDirectory": true,
+            "installerIcon": "./icons/icon.ico",
+            "uninstallerIcon": "./icons/icon.ico",
+            "installerHeaderIcon": "./icons/icon.ico",
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Ahri Post",
+            "uninstallDisplayName": "AhriPost Uninstall",
+            "artifactName": "${productName} Setup ${version}.${ext}",
+            "deleteAppDataOnUninstall": false
         }
-    },
-    "nsis": {
-        "oneClick": false,
-        "allowElevation": true,
-        "allowToChangeInstallationDirectory": true,
-        "installerIcon": "./icons/icon.ico",
-        "uninstallerIcon": "./icons/icon.ico",
-        "installerHeaderIcon": "./icons/icon.ico",
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "shortcutName": "AhriPost",
-        "include": "script/installer.nsh"
     }
 }

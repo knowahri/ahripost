@@ -1,27 +1,28 @@
 <script setup>
-import { h, ref, onBeforeMount, onMounted, onUpdated, computed } from "vue";
+import { h, ref, onBeforeMount, onMounted } from "vue";
 import { NTree, NSpace, NIcon, NModal, NInput } from "naive-ui";
 const { ipcRenderer } = require("electron");
 import {
     JournalOutline,
 } from "@vicons/ionicons5";
 import Indexed from '@/utils/indexed'
-const db = new Indexed()
 
 const props = defineProps({
     project: Number,
 })
 const emit = defineEmits(['openApi'])
 
-const project = ref({ expand: [] })
-const api_data = ref([])
-const api_tree = ref([])
-const expand = ref([])
+const db = new Indexed()
+const project = ref(0)
+onBeforeMount(() => {
+    project.value = localStorage.getItem('project')
+})
 
 const showModal = ref(false)
 const input = ref('')
 const catalog_id = ref(0)
 const opera = ref(0)
+const expand = ref([])
 
 const extTree = data => {
     let tmp = []
@@ -320,89 +321,17 @@ const handleSubmit = () => {
 
 const handleExpandChanged = (res) => {
     expand.value = res
-    project.value.expand = res
-    db.update('project', project.value)
+    db.update('expand', { _id: d.value._id, expands: res })
 }
-
-const api_data2tree = (data, parent = 0) => {
-    let tmp = []
-    data.forEach(node => {
-        if (node.parent == parent) {
-            tmp.push({
-                children: node.type == 0 ? api_data2tree(data, node._id) : null,
-                key: node._id,
-                label: () =>
-                    h(
-                        NSpace,
-                        {
-                            onclick: () => {
-                                if (node.type > 0) {
-                                    emit('openApi', node._id)
-                                }
-                            },
-                            oncontextmenu: e => {
-                                e.preventDefault();
-                                e.stopPropagation()
-                                if (node.type == 0) {
-                                    ipcRenderer.send("show-context-folder", node._id)
-                                } else {
-                                    ipcRenderer.send("show-context-request", node._id)
-                                }
-                            },
-                        },
-                        { default: () => node.name }
-                    ),
-                prefix: () => {
-                    if (node.type == 0) {
-                        return h(NIcon, { size: 18 }, { default: () => h(JournalOutline) })
-                    } else {
-                        return h(NSpace, { class: node.method }, { default: () => node.method });
-                    }
-                },
-            })
-        }
-    })
-    return tmp
-}
-
-const get_data = () => {
-    db.findMany('api', { key: 'project', value: props.project }).then(res => {
-        api_data.value = res || []
-        api_tree.value = api_data2tree(api_data.value)
-        expand.value = project.value.expand
-    })
-}
-
-onBeforeMount(() => {
-    db.findOne('project', props.project).then(res => {
-        project.value = res
-    })
-})
 
 onMounted(() => {
-    get_data()
-    // db.create('api', {
-    //     _id: 2,
-    //     parent: 1,
-    //     type: 1,
-    //     index: 0,
-    //     project: props.project,
-    //     name: 'r1',
-    //     path: '',
-    //     method: 'GET',
-    //     params: [],
-    //     body: {
-    //         type: 'json',
-    //         data: [],
-    //         json: {}
-    //     },
-    //     headers: [],
-    //     response: {
-    //         status: 0,
-    //         headers: [],
-    //         data: {}
-    //     }
-    // })
+    db.findOne('project', props.project).then(res => {
+        d.value = res
+        catalog.value = createTree(d.value.catalog)
+        db.findOne('expand', d.value._id).then(res => {
+            expand.value = res?.expands ? res.expands : []
+        })
+    })
     ipcRenderer.on("context-menu-create", (_, command) => {
         catalog_id.value = command
         opera.value = 0
@@ -453,7 +382,7 @@ onMounted(() => {
     <NTree
         block-line
         draggable
-        :data="api_tree"
+        :data="catalog"
         @drop="handleDrop"
         :expanded-keys="expand"
         :expand-on-dragenter="true"

@@ -2,7 +2,7 @@
 import Indexed from '@/utils/indexed'
 const db = new Indexed()
 
-import { ref, onBeforeMount } from 'vue'
+import { ref, onBeforeMount, onMounted } from 'vue'
 import {
     darkTheme,
     NConfigProvider,
@@ -16,6 +16,8 @@ import {
     NInput,
     NTable
 } from "naive-ui"
+import Cloud from "@/components/Cloud.vue"
+import Update from "@/components/Update.vue"
 import Catalog from "@/components/Catalog.vue"
 import Api from "@/components/Api.vue"
 const { ipcRenderer } = require("electron")
@@ -23,7 +25,9 @@ const { ipcRenderer } = require("electron")
 const project = ref(0)
 const showModal = ref(false)
 const input = ref('')
+const describe = ref('')
 const projects = ref([])
+const api = ref(0)
 
 const rightClick = e => {
     e.preventDefault()
@@ -36,8 +40,12 @@ const token = ref('')
 
 onBeforeMount(() => {
     token.value = localStorage.getItem('token')
+    let _id = localStorage.getItem('api')
+    if (_id) {
+        api.value = parseInt(_id)
+    }
     db.open().then(res => {
-        console.log(res)
+        // console.log(res)
     })
     db.find('project').then(res => {
         projects.value = res
@@ -61,6 +69,7 @@ const handleChangeTheme = () => {
         localStorage.setItem('theme', 'dark')
         theme.value = darkTheme
     }
+    window.location.reload()
 }
 
 const handleNewProject = () => {
@@ -76,7 +85,7 @@ const handleSubmit = () => {
     let name = input.value.trim()
     if (name.length > 0) {
         let _id = new Date().getTime()
-        db.create('project', { _id, name: name, describe: '描述', catalog: [] }).then(() => {
+        db.create('project', { _id, name: input.value.trim(), describe: describe.value.trim(), expand: [] }).then(() => {
             localStorage.setItem('project', _id)
             project.value = _id
         })
@@ -91,7 +100,16 @@ const handleOpenProject = proj => {
 }
 
 const handleOpenApi = (_id) => {
-    console.log(_id)
+    if (_id < 0) {
+        console.log(_id)
+        if (api.value == -_id) {
+            localStorage.removeItem('api')
+            api.value = 0
+        }
+    } else {
+        localStorage.setItem('api', _id)
+        api.value = _id
+    }
 }
 
 ipcRenderer.on("login", (_, arg) => {
@@ -122,22 +140,30 @@ const handleLogout = () => {
                 @negative-click="showModal = false"
                 negative-text="取消"
             >
-                <NInput v-model:value="input" type="text" clearable placeholder="请输入" />
+                <NInput v-model:value="input" type="text" clearable placeholder="Name" />
+                <NInput v-model:value="describe" type="text" clearable placeholder="Describe" />
             </NModal>
             <n-layout style="height: 100%">
-                <n-layout-header style="height: 64px; padding: 24px" bordered>
+                <n-layout-header
+                    style="height: 64px; display: flex; align-items: center; padding: 0 24px;"
+                    bordered
+                >
                     <NButton @click="handleChangeTheme">Theme</NButton>
                     <NButton v-show="project != 0" @click="handleCloseProject">Close Project</NButton>
                     <NButton v-if="token" @click="handleLogout">Logout</NButton>
                     <NButton v-else @click="handleLogin">Login</NButton>
+                    <Update />
+                    <Cloud :project="project" />
                 </n-layout-header>
                 <n-layout
                     v-if="project == 0"
                     position="absolute"
-                    style="top: 64px; bottom: 34px"
+                    style="top: 64px; bottom: 34px; padding: 24px;"
                     :native-scrollbar="false"
                 >
                     <NButton @click="handleNewProject">新建项目</NButton>
+                    <br />
+                    <br />
                     <NTable
                         :bordered="false"
                         :single-line="false"
@@ -175,7 +201,8 @@ const handleLogout = () => {
                         <Catalog :project="project" @openApi="handleOpenApi" />
                     </n-layout-sider>
                     <n-layout content-style="padding: 24px;" :native-scrollbar="false">
-                        <Api></Api>
+                        <div v-if="api == 0">welcome</div>
+                        <Api v-else :api="api" @closeApi="api = 0"></Api>
                     </n-layout>
                 </n-layout>
                 <n-layout-footer
@@ -184,7 +211,7 @@ const handleLogout = () => {
                     bordered
                 >
                     <div>&copy;post.ahriknow.com</div>
-                    <div>V 0.0.1</div>
+                    <div>V 0.0.0</div>
                 </n-layout-footer>
             </n-layout>
         </NMessageProvider>

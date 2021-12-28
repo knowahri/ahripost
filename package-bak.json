@@ -56,18 +56,23 @@
                 "deb",
                 "pacman"
             ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": false,
+            "allowElevation": true,
+            "allowToChangeInstallationDirectory": true,
+            "installerIcon": "./icons/icon.ico",
+            "uninstallerIcon": "./icons/icon.ico",
+            "installerHeaderIcon": "./icons/icon.ico",
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Ahri Post",
+            "uninstallDisplayName": "AhriPost Delete",
+            "artifactName": "${productName} Setup ${version}.${ext}",
+            "deleteAppDataOnUninstall": false,
+            "include": "script/installer.nsh",
+            "script": "script/installer.nsh"
         }
-    },
-    "nsis": {
-        "oneClick": false,
-        "allowElevation": true,
-        "allowToChangeInstallationDirectory": true,
-        "installerIcon": "./icons/icon.ico",
-        "uninstallerIcon": "./icons/icon.ico",
-        "installerHeaderIcon": "./icons/icon.ico",
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "shortcutName": "AhriPost",
-        "include": "script/installer.nsh"
     }
 }

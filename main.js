@@ -1,49 +1,82 @@
-const { app, BrowserWindow, ipcMain, Menu, shell } = require("electron");
-const path = require("path");
-const Base64 = require("./ab");
-const axios = require("axios");
+const { app, BrowserWindow, ipcMain, Menu, shell, dialog } = require("electron")
+const path = require("path")
+const Base64 = require("./ab")
+const axios = require("axios")
+const { autoUpdater } = require("electron-updater")
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+const template = [
+    {
+        label: '文件',
+        submenu: [
+            {
+                label: '新建项目',
+                accelerator: 'CmdOrCtrl+N',
+                click: () => {
+                    console.log(0)
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: '退出',
+                accelerator: 'Shift+CmdOrCtrl+Q',
+                click: () => {
+                    app.quit()
+                }
+            }
+        ]
+    }
+]
 
+let mainWindow
 function createWindow() {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 1600,
         height: 900,
         icon: path.join(__dirname, "/icons/icon.png"),
+        darkTheme: false,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             nodeIntegration: true,
             contextIsolation: false,
         },
-    });
+    })
 
-    // mainWindow.loadURL("http://localhost:3000");
-    mainWindow.loadFile('dist/index.html')
+    mainWindow.loadURL("http://localhost:3000")
+    // mainWindow.loadFile('dist/index.html')
 
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools()
 }
 
 // 在 Electron 结束初始化和创建浏览器窗口的时候调用
 // 部分 API 在 ready 事件触发后才能使用
 app.whenReady().then(() => {
-    createWindow();
+    // const appMenu = Menu.buildFromTemplate(template);
+    // Menu.setApplicationMenu(appMenu);
+
+    createWindow()
+
+    autoUpdater.updateConfigPath
 
     app.on("activate", () => {
         // 通常在 macOS 上，当点击 dock 中的应用程序图标时，如果没有其他打开的窗口，那么程序会重新创建一个窗口
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
     });
 });
 
 // 除了 macOS 外，当所有窗口都被关闭的时候退出程序
 app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+    if (process.platform !== "darwin") app.quit()
 });
 
-//
+// =========== 登录 ===========
 
 ipcMain.on("login", (event, _) => {
-    let express = require("express");
-    let web = express();
-    let port;
-    let server;
+    let express = require("express")
+    let web = express()
+    let port
+    let server
 
     web.get("/", async function (req, res) {
         if (req.query.hasOwnProperty("code")) {
@@ -53,76 +86,78 @@ ipcMain.on("login", (event, _) => {
                     code: req.query.code,
                 }
             );
-            event.sender.send("login", response.data.data.token);
-            res.redirect("/ok");
+            event.sender.send("login", response.data.data.token)
+            res.redirect("/ok")
         } else {
-            let back = Base64.encode(`http://127.0.0.1:${port}`);
-            res.redirect(`https://auth.ahriknow.com/auth?returnUrl=${back}`);
+            let back = Base64.encode(`http://127.0.0.1:${port}`)
+            res.redirect(`https://auth.ahriknow.com/auth?returnUrl=${back}`)
         }
-    });
+    })
 
     web.get("/ok", async function (_, res) {
-        res.send("ok, you can close this page");
-    });
+        res.send("ok, you can close this page")
+    })
 
     server = web.listen(0, function () {
-        port = server.address().port;
-        shell.openExternal(`http://127.0.0.1:${port}`);
-    });
-});
+        port = server.address().port
+        shell.openExternal(`http://127.0.0.1:${port}`)
+    })
+})
+
+// =========== 菜单 ===========
 
 ipcMain.on("show-context-folder", (event, _id) => {
     const template = [
         {
             label: "新建请求",
             click: () => {
-                event.sender.send("context-menu-create", _id);
+                event.sender.send("context-menu-create", _id)
             },
         },
         { type: "separator" },
         {
             label: "新建文件夹",
             click: () => {
-                event.sender.send("context-menu-folder", _id);
+                event.sender.send("context-menu-folder", _id)
             },
         },
         { type: "separator" },
         {
             label: "重命名",
             click: () => {
-                event.sender.send("context-menu-rename", _id);
+                event.sender.send("context-menu-rename", _id)
             },
         },
         { type: "separator" },
         {
             label: "删除",
             click: () => {
-                event.sender.send("context-menu-delete", _id);
+                event.sender.send("context-menu-delete", _id)
             },
         },
     ];
-    const menu = Menu.buildFromTemplate(template);
-    menu.popup(BrowserWindow.fromWebContents(event.sender));
-});
+    const menu = Menu.buildFromTemplate(template)
+    menu.popup(BrowserWindow.fromWebContents(event.sender))
+})
 
 ipcMain.on("show-context-request", (event, _id) => {
     const template = [
         {
             label: "删除",
             click: () => {
-                event.sender.send("context-menu-delete", _id);
+                event.sender.send("context-menu-delete", _id)
             },
         },
         { type: "separator" },
         {
             label: "重命名",
             click: () => {
-                event.sender.send("context-menu-rename", _id);
+                event.sender.send("context-menu-rename", _id)
             },
         },
     ];
-    const menu = Menu.buildFromTemplate(template);
-    menu.popup(BrowserWindow.fromWebContents(event.sender));
+    const menu = Menu.buildFromTemplate(template)
+    menu.popup(BrowserWindow.fromWebContents(event.sender))
 });
 
 ipcMain.on("show-context-null", (event) => {
@@ -130,17 +165,88 @@ ipcMain.on("show-context-null", (event) => {
         {
             label: "新建请求",
             click: () => {
-                event.sender.send("context-menu-create", 0);
+                event.sender.send("context-menu-create", 0)
             },
         },
         { type: "separator" },
         {
             label: "新建文件夹",
             click: () => {
-                event.sender.send("context-menu-folder", 0);
+                event.sender.send("context-menu-folder", 0)
             },
         },
     ];
-    const menu = Menu.buildFromTemplate(template);
-    menu.popup(BrowserWindow.fromWebContents(event.sender));
+    const menu = Menu.buildFromTemplate(template)
+    menu.popup(BrowserWindow.fromWebContents(event.sender))
+});
+
+ipcMain.on("show-context-change", (event, data) => {
+    event.sender.send("context-menu-change", data)
+});
+
+// =========== 请求 ===========
+
+const instance = axios.create();
+instance.interceptors.response.use(function (response) {
+    return response;
+}, function (error) {
+    return error.response;
+});
+ipcMain.on("request", (event, { path = '', method = 'GET', data = null, headers = {} }) => {
+    instance({
+        url: path,
+        method: method,
+        data: data,
+        headers: headers
+    }).then(res => {
+        let data = {
+            status: res.status,
+            headers: res.headers,
+            data: res.data
+        }
+        event.sender.send("response", data)
+    }).catch(err => {
+        event.sender.send("response", err)
+    });
+});
+
+// =========== 更新 ===========
+
+ipcMain.on("update", (_, opera) => {
+    if (opera == 0) {
+        autoUpdater.checkForUpdates()
+    } else if (opera == 1) {
+        autoUpdater.downloadUpdate()
+    } else if (opera == 2) {
+        autoUpdater.quitAndInstall()
+    }
+});
+
+autoUpdater.autoInstallOnAppQuit = false
+autoUpdater.autoDownload = false
+autoUpdater.setFeedURL('http://127.0.0.1:5500/build/')
+autoUpdater.on('update-available', () => {
+    mainWindow.webContents.send('update', {
+        code: 1
+    })
+})
+autoUpdater.on('update-not-available', () => {
+    mainWindow.webContents.send('update', {
+        code: 2
+    })
+})
+autoUpdater.on('error', (_, err) => {
+    mainWindow.webContents.send('update', {
+        code: 5
+    })
+})
+autoUpdater.on('download-progress', (_, progressObj) => {
+    mainWindow.webContents.send('update', {
+        code: 3
+    })
+})
+autoUpdater.on('update-downloaded', () => {
+    mainWindow.webContents.send('update', {
+        code: 4
+    })
 });

@@ -4,11 +4,21 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: path.resolve(__dirname, "./dist/"),
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
+    // base: path.resolve(__dirname, "./dist/"),
+    plugins: [vue()],
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "src"),
+        },
     },
-  },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    jsonWorker: ['monaco-editor/esm/vs/language/json/json.worker'],
+                    htmlWorker: ['monaco-editor/esm/vs/language/html/html.worker'],
+                }
+            }
+        }
+    }
 });
