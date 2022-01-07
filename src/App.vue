@@ -1,8 +1,9 @@
 <script setup>
 import Indexed from '@/utils/indexed'
+import lang from '@/lang/lang'
 const db = new Indexed()
 
-import { ref, onBeforeMount, onMounted } from 'vue'
+import { ref, onBeforeMount } from 'vue'
 import {
     darkTheme,
     NConfigProvider,
@@ -27,12 +28,30 @@ const showModal = ref(false)
 const input = ref('')
 const describe = ref('')
 const projects = ref([])
-const api = ref(0)
+const language = ref(lang())
+
+const handleLang = () => {
+    let lang_tmp = 'zh-CN';
+    if (language.value.lang == '简体中文') {
+        lang_tmp = 'en-US'
+    }
+    language.value = lang(lang_tmp)
+    ipcRenderer.send("ipc-event", {
+        event: 'lang',
+        data: lang_tmp
+    })
+}
 
 const rightClick = e => {
     e.preventDefault()
     e.stopPropagation()
-    ipcRenderer.send("show-context-null")
+    ipcRenderer.send("ipc-event", {
+        event: 'create-item',
+        data: {
+            _id: 0,
+            type: 0
+        }
+    })
 }
 
 const theme = ref(null)
@@ -40,10 +59,6 @@ const token = ref('')
 
 onBeforeMount(() => {
     token.value = localStorage.getItem('token')
-    let _id = localStorage.getItem('api')
-    if (_id) {
-        api.value = parseInt(_id)
-    }
     db.open().then(res => {
         // console.log(res)
     })
@@ -85,7 +100,7 @@ const handleSubmit = () => {
     let name = input.value.trim()
     if (name.length > 0) {
         let _id = new Date().getTime()
-        db.create('project', { _id, name: input.value.trim(), describe: describe.value.trim(), expand: [] }).then(() => {
+        db.create('project', { _id, name: input.value.trim(), describe: describe.value.trim(), expand: [], version: '0.0.0' }).then(() => {
             localStorage.setItem('project', _id)
             project.value = _id
         })
@@ -97,19 +112,6 @@ const handleSubmit = () => {
 const handleOpenProject = proj => {
     localStorage.setItem('project', proj._id)
     project.value = proj._id
-}
-
-const handleOpenApi = (_id) => {
-    if (_id < 0) {
-        console.log(_id)
-        if (api.value == -_id) {
-            localStorage.removeItem('api')
-            api.value = 0
-        }
-    } else {
-        localStorage.setItem('api', _id)
-        api.value = _id
-    }
 }
 
 ipcRenderer.on("login", (_, arg) => {
@@ -145,15 +147,21 @@ const handleLogout = () => {
             </NModal>
             <n-layout style="height: 100%">
                 <n-layout-header
-                    style="height: 64px; display: flex; align-items: center; padding: 0 24px;"
+                    style="height: 64px; display: flex; align-items: center; padding: 0 24px;justify-content: space-between;"
                     bordered
                 >
-                    <NButton @click="handleChangeTheme">Theme</NButton>
-                    <NButton v-show="project != 0" @click="handleCloseProject">Close Project</NButton>
-                    <NButton v-if="token" @click="handleLogout">Logout</NButton>
-                    <NButton v-else @click="handleLogin">Login</NButton>
-                    <Update />
-                    <Cloud :project="project" />
+                    <div>
+                        <NButton @click="handleChangeTheme">{{ language.theme }}</NButton>
+                        <NButton
+                            v-show="project != 0"
+                            @click="handleCloseProject"
+                        >{{ language.close }}</NButton>
+                        <NButton v-if="token" @click="handleLogout">{{ language.logout }}</NButton>
+                        <NButton v-else @click="handleLogin">{{ language.login }}</NButton>
+                        <Update />
+                        <Cloud :project="project" />
+                    </div>
+                    <NButton @click="handleLang">{{ language.next }}</NButton>
                 </n-layout-header>
                 <n-layout
                     v-if="project == 0"
@@ -198,11 +206,10 @@ const handleLogout = () => {
                         bordered
                         @contextmenu="rightClick"
                     >
-                        <Catalog :project="project" @openApi="handleOpenApi" />
+                        <Catalog :project="project" />
                     </n-layout-sider>
                     <n-layout content-style="padding: 24px;" :native-scrollbar="false">
-                        <div v-if="api == 0">welcome</div>
-                        <Api v-else :api="api" @closeApi="api = 0"></Api>
+                        <Api></Api>
                     </n-layout>
                 </n-layout>
                 <n-layout-footer

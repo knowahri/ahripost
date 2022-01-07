@@ -106,83 +106,107 @@ ipcMain.on("login", (event, _) => {
 
 // =========== 菜单 ===========
 
-ipcMain.on("show-context-folder", (event, _id) => {
-    const template = [
-        {
-            label: "新建请求",
-            click: () => {
-                event.sender.send("context-menu-create", _id)
-            },
-        },
-        { type: "separator" },
-        {
-            label: "新建文件夹",
-            click: () => {
-                event.sender.send("context-menu-folder", _id)
-            },
-        },
-        { type: "separator" },
-        {
-            label: "重命名",
-            click: () => {
-                event.sender.send("context-menu-rename", _id)
-            },
-        },
-        { type: "separator" },
-        {
-            label: "删除",
-            click: () => {
-                event.sender.send("context-menu-delete", _id)
-            },
-        },
-    ];
-    const menu = Menu.buildFromTemplate(template)
-    menu.popup(BrowserWindow.fromWebContents(event.sender))
+ipcMain.on("ipc-event", (event, context) => {
+    switch (context.event) {
+        case 'create-item':
+            {
+                let template = [];
+                if (context.data.type == 0) {
+                    template = [
+                        {
+                            label: "新建请求",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'create-request',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        { type: "separator" },
+                        {
+                            label: "新建文件夹",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'create-folder',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        { type: "separator" },
+                        {
+                            label: "重命名",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'rename',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        { type: "separator" },
+                        {
+                            label: "删除",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'delete',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                    ]
+                } else {
+                    template = [
+                        {
+                            label: "重命名",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'rename',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        { type: "separator" },
+                        {
+                            label: "删除",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'delete',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                    ]
+                }
+                const menu = Menu.buildFromTemplate(template)
+                menu.popup(BrowserWindow.fromWebContents(event.sender))
+            }
+            break
+        case 'change':
+            event.sender.send("ipc-event-catalog", {
+                event: 'change',
+                data: context.data
+            })
+            break
+        case 'open-api':
+            event.sender.send("ipc-event-api", {
+                event: 'open-api',
+                data: context.data
+            })
+            break
+        case 'close-api':
+            event.sender.send("ipc-event-api", {
+                event: 'close-api',
+                data: context.data
+            })
+            break
+        case 'lang':
+            event.sender.send("ipc-event-update", {
+                event: 'lang',
+                data: context.data
+            })
+            break
+
+    }
 })
-
-ipcMain.on("show-context-request", (event, _id) => {
-    const template = [
-        {
-            label: "删除",
-            click: () => {
-                event.sender.send("context-menu-delete", _id)
-            },
-        },
-        { type: "separator" },
-        {
-            label: "重命名",
-            click: () => {
-                event.sender.send("context-menu-rename", _id)
-            },
-        },
-    ];
-    const menu = Menu.buildFromTemplate(template)
-    menu.popup(BrowserWindow.fromWebContents(event.sender))
-});
-
-ipcMain.on("show-context-null", (event) => {
-    const template = [
-        {
-            label: "新建请求",
-            click: () => {
-                event.sender.send("context-menu-create", 0)
-            },
-        },
-        { type: "separator" },
-        {
-            label: "新建文件夹",
-            click: () => {
-                event.sender.send("context-menu-folder", 0)
-            },
-        },
-    ];
-    const menu = Menu.buildFromTemplate(template)
-    menu.popup(BrowserWindow.fromWebContents(event.sender))
-});
-
-ipcMain.on("show-context-change", (event, data) => {
-    event.sender.send("context-menu-change", data)
-});
 
 // =========== 请求 ===========
 

@@ -3,6 +3,12 @@ import { ref } from 'vue'
 import { useMessage, NButton, NModal } from 'naive-ui'
 const { ipcRenderer } = require("electron")
 
+import lang from '@/lang/lang'
+const language = ref(lang())
+ipcRenderer.on("ipc-event-update", (_, context) => {
+    language.value = lang(context.data)
+});
+
 const message = useMessage()
 const loading = ref(false)
 const showModal1 = ref(false)
@@ -63,7 +69,7 @@ const handleSubmit2 = () => {
         @negative-click="showModal2 = false"
         negative-text="取消"
     >下载完成，现在进行安装?</NModal>
-    <NButton @click="handleUpdate" :loading="loading">Update</NButton>
+    <NButton @click="handleUpdate" :loading="loading">{{ language.update }}</NButton>
 </template>
 
 <style scoped>

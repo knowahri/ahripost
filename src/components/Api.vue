@@ -1,5 +1,5 @@
 <script setup>
-import { watch, ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Indexed from '@/utils/indexed'
 import {
     useMessage, NSpace, NButton, NInput, NIcon, NGrid, NGi, NTabs, NTabPane, NTable, NCheckbox, NInputGroup, NSelect, NDivider, NRadioGroup, NRadio
@@ -10,7 +10,7 @@ import {
 import * as monaco from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import { K } from '../../dist/assets/jsonWorker.c09b170c'
+// import { K } from '../../dist/assets/jsonWorker.c09b170c'
 self.MonacoEnvironment = {
     getWorker(workerId, label) {
         if (label === 'json') {
@@ -21,15 +21,8 @@ self.MonacoEnvironment = {
 }
 const { ipcRenderer } = require("electron")
 
-
-const emit = defineEmits(['closeApi'])
-
 const db = new Indexed()
 const message = useMessage()
-
-const props = defineProps({
-    api: Number,
-})
 
 const format = (s) => {
     if (s) {
@@ -45,9 +38,14 @@ const tab = ref('Params')
 const reqEditor = ref();
 const resEditor = ref();
 const api = ref({
+    _id: 0,
+    parent: 0,
+    type: 1,
+    index: 0,
+    project: 0,
     name: '',
-    date: '',
     path: '',
+    method: 'GET',
     params: [],
     body: {
         type: 'json',
@@ -61,6 +59,8 @@ const api = ref({
         data: {}
     }
 })
+
+const response_data = computed(() => JSON.stringify(api.value.response.data, null, '\t'))
 
 const newKey = ref('')
 const newValue = ref('')
@@ -84,23 +84,12 @@ const path = computed({
 let reqInstance;
 let resInstance;
 
-const handleData = () => {
-    db.findOne('api', props.api).then(res => {
-        if (!res) {
-            emit('closeApi')
-        }
-        api.value = res
-    })
-    // resInstance.setValue('123')
-}
-
 const handleKeyDown = e => {
-    ipcRenderer.send("show-context-change", {
-        _id: api.value._id,
-        name: api.value.name,
-        method: api.value.method
-    });
     db.update('api', api.value).then(res => {
+        ipcRenderer.send("ipc-event", {
+            event: 'change',
+            data: null
+        });
         message.success("Saved!")
     })
 }
@@ -135,16 +124,44 @@ ipcRenderer.on("response", (_, response) => {
     api.value.response = response
     resInstance.setValue(JSON.stringify(api.value.response.data))
     resInstance.getAction('editor.action.formatDocument').run()
-});
+})
+
+ipcRenderer.on("ipc-event-api", (_, context) => {
+    switch (context.event) {
+        case 'open-api':
+            {
+                loading.value = true
+                db.findOne('api', context.data._id).then(res => {
+                    if (res) {
+                        localStorage.setItem('api', context.data._id)
+                        api.value = res
+                        resInstance.setValue(JSON.stringify(api.value.response.data))
+                        resInstance.getAction('editor.action.formatDocument').run()
+                    } else {
+                        api.value._id = 0
+                    }
+                })
+                loading.value = false
+            }
+            break
+        case 'close-api':
+            if (api.value._id == context.data) {
+                api.value._id = 0
+            }
+            break
+    }
+})
 
 const handleSave = () => {
 
 }
 
 window.addEventListener("keydown", e => {
-    if (e.ctrlKey && e.key == 's') {
-        handleKeyDown()
-        console.log("Save Api!")
+    if (api.value._id > 0) {
+        if (e.ctrlKey && e.key == 's') {
+            handleKeyDown()
+            console.log("Save Api!")
+        }
     }
 })
 
@@ -154,6 +171,7 @@ const handleInput = () => {
     if (tab.value == 'Params') {
         api.value.params.push({
             _id: new Date().getTime(),
+            enable: true,
             key: newKey.value,
             value: newValue.value,
             describe: '',
@@ -162,6 +180,7 @@ const handleInput = () => {
     } else if (tab.value == 'Headers') {
         api.value.headers.push({
             _id: new Date().getTime(),
+            enable: true,
             key: newKey.value,
             value: newValue.value,
             describe: '',
@@ -170,6 +189,7 @@ const handleInput = () => {
     } else if (tab.value == 'Body') {
         api.value.body.data.push({
             _id: new Date().getTime(),
+            enable: true,
             key: newKey.value,
             value: newValue.value,
             describe: '',
@@ -195,8 +215,18 @@ const handleTabChanged = arg => {
     tab.value = arg
 }
 
+const handleFormat = () => {
+    resInstance.getAction('editor.action.formatDocument').run()
+}
+
 onMounted(() => {
-    handleData()
+    ipcRenderer.send("ipc-event", {
+        event: 'open-api',
+        data: {
+            _id: parseInt(localStorage.getItem('api'))
+        }
+    })
+
     let theme = 'vs'
     if (localStorage.getItem('theme') == 'dark') {
         theme = 'vs-dark'
@@ -222,15 +252,13 @@ onMounted(() => {
         theme: theme
     })
 })
-
-watch(() => props.api, () => {
-    handleData()
-})
 </script>
 
 <template>
-{{api}}
-    <NGrid x-gap="12" :cols="1">
+    <NGrid v-show="!api._id" x-gap="12" :cols="1">
+        <NGi>WELCOME</NGi>
+    </NGrid>
+    <NGrid v-show="api._id" x-gap="12" :cols="1">
         <NGi>
             <NInputGroup>
                 <NSelect
@@ -514,6 +542,15 @@ watch(() => props.api, () => {
             <NTabs default-value="Response" size="small">
                 <NTabPane name="Response" tab="Response" display-directive="show">
                     <div style="height: 300px;" ref="resEditor"></div>
+                    <!-- <n-input
+                        type="textarea"
+                        readonly="true"
+                        v-model:value="response_data"
+                        placeholder="response"
+                        :autosize="{
+                            minRows: 3
+                        }"
+                    /> -->
                 </NTabPane>
                 <NTabPane name="Headers" tab="Headers" display-directive="show">
                     <NTable size="small">
@@ -532,6 +569,7 @@ watch(() => props.api, () => {
                     </NTable>
                 </NTabPane>
                 <template #suffix>
+                    <NButton size="small" @click="handleFormat">Format</NButton>
                     <p style="font-size: 12px; padding: 0 20px">{{ format(api.date) }}</p>
                     {{ api.response.status }}
                     {{ api.response.status > 200 ? api.response.data.detail : '' }}
