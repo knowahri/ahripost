@@ -81,11 +81,11 @@ ipcMain.on("login", (event, _) => {
     web.get("/", async function (req, res) {
         if (req.query.hasOwnProperty("code")) {
             let response = await axios.post(
-                "https://api.auth.ahriknow.com/api/v1/sso/token",
+                "http://auth.api.ahriknow.com/api/v1/sso/token",
                 {
                     code: req.query.code,
                 }
-            );
+            )
             event.sender.send("login", response.data.data.token)
             res.redirect("/ok")
         } else {

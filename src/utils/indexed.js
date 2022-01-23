@@ -38,8 +38,8 @@ class Indexed {
             request.onsuccess = e => {
                 resolve('Success!')
             }
-            request.onerror = () => {
-                reject('Failed!')
+            request.onerror = (e) => {
+                reject(e)
             }
         })
     }

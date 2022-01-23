@@ -223,7 +223,7 @@ onMounted(() => {
     ipcRenderer.send("ipc-event", {
         event: 'open-api',
         data: {
-            _id: parseInt(localStorage.getItem('api'))
+            _id: parseInt(localStorage.getItem('api') || 0)
         }
     })
 

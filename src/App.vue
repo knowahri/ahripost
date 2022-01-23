@@ -100,7 +100,14 @@ const handleSubmit = () => {
     let name = input.value.trim()
     if (name.length > 0) {
         let _id = new Date().getTime()
-        db.create('project', { _id, name: input.value.trim(), describe: describe.value.trim(), expand: [], version: '0.0.0' }).then(() => {
+        db.create('project', {
+            _id,
+            name: input.value.trim(),
+            describe: describe.value.trim(),
+            expand: [],
+            version: '0.0.0',
+            date: _id
+        }).then(() => {
             localStorage.setItem('project', _id)
             project.value = _id
         })
