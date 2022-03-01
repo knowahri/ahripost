@@ -34,13 +34,13 @@ Function pgPageCreate
         ${NSD_CreateLabel} 20% 40u 20% 10u "entry:"
         Pop $0
 
-        ${NSD_CreateText} 40% 38u 40% 12u "https://www.baidu.com"
+        ${NSD_CreateText} 40% 38u 40% 12u "https://www.ahriknow.com"
         Pop $entry
 
         ${NSD_CreateLabel} 20% 54u 20% 10u "website:"
         Pop $0
 
-        ${NSD_CreateText} 40% 52u 40% 12u "https://www.baidu.com"
+        ${NSD_CreateText} 40% 52u 40% 12u "https://www.ahriknow.com"
         Pop $website
         
         ${NSD_CreateLabel} 20% 68u 20% 10u "openMode:"
