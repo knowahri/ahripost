@@ -46,7 +46,7 @@ function createWindow() {
     mainWindow.loadURL("http://localhost:3000")
     // mainWindow.loadFile('dist/index.html')
 
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 }
 
 // 在 Electron 结束初始化和创建浏览器窗口的时候调用
@@ -111,7 +111,30 @@ ipcMain.on("ipc-event", (event, context) => {
         case 'create-item':
             {
                 let template = [];
-                if (context.data.type == 0) {
+                if (context.data.type == -1) {
+                    template = [
+                        {
+                            label: "新建请求",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'create-request',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        { type: "separator" },
+                        {
+                            label: "新建文件夹",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'create-folder',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                    ]
+                }
+                else if (context.data.type == 0) {
                     template = [
                         {
                             label: "新建请求",
@@ -152,6 +175,15 @@ ipcMain.on("ipc-event", (event, context) => {
                                 })
                             },
                         },
+                        {
+                            label: "删除(远程)",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'delete-remote',
+                                    data: context.data._id
+                                })
+                            },
+                        },
                     ]
                 } else {
                     template = [
@@ -170,6 +202,15 @@ ipcMain.on("ipc-event", (event, context) => {
                             click: () => {
                                 event.sender.send("ipc-event-catalog", {
                                     event: 'delete',
+                                    data: context.data._id
+                                })
+                            },
+                        },
+                        {
+                            label: "删除(远程)",
+                            click: () => {
+                                event.sender.send("ipc-event-catalog", {
+                                    event: 'delete-remote',
                                     data: context.data._id
                                 })
                             },
@@ -217,21 +258,25 @@ instance.interceptors.response.use(function (response) {
     return error.response;
 });
 ipcMain.on("request", (event, { path = '', method = 'GET', data = null, headers = {} }) => {
-    instance({
-        url: path,
-        method: method,
-        data: data,
-        headers: headers
-    }).then(res => {
-        let data = {
-            status: res.status,
-            headers: res.headers,
-            data: res.data
-        }
-        event.sender.send("response", data)
-    }).catch(err => {
+    try{
+        instance({
+            url: path,
+            method: method,
+            data: data,
+            headers: headers
+        }).then(res => {
+            let data = {
+                status: res.status,
+                headers: res.headers,
+                data: res.data
+            }
+            event.sender.send("response", data)
+        }).catch(err => {
+            event.sender.send("response", err)
+        });
+    } catch (err) {
         event.sender.send("response", err)
-    });
+    }
 });
 
 // =========== 更新 ===========

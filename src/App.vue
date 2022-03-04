@@ -1,6 +1,7 @@
 <script setup>
 import Indexed from '@/utils/indexed'
 import lang from '@/lang/lang'
+import axios from 'axios'
 const db = new Indexed()
 
 import { ref, onBeforeMount } from 'vue'
@@ -15,12 +16,17 @@ import {
     NButton,
     NModal,
     NInput,
-    NTable
+    NTable,
+    NSpace,
+    NInputGroup,
+    useMessage,
+    NGlobalStyle
 } from "naive-ui"
 import Cloud from "@/components/Cloud.vue"
 import Update from "@/components/Update.vue"
 import Catalog from "@/components/Catalog.vue"
 import Api from "@/components/Api.vue"
+import Project from "@/components/Project.vue"
 const { ipcRenderer } = require("electron")
 
 const project = ref(0)
@@ -29,6 +35,7 @@ const input = ref('')
 const describe = ref('')
 const projects = ref([])
 const language = ref(lang())
+// const message = useMessage()
 
 const handleLang = () => {
     let lang_tmp = 'zh-CN';
@@ -49,7 +56,7 @@ const rightClick = e => {
         event: 'create-item',
         data: {
             _id: 0,
-            type: 0
+            type: -1
         }
     })
 }
@@ -134,11 +141,47 @@ const handleLogout = () => {
     localStorage.removeItem("token");
     token.value = ''
 }
+
+const member = ref('')
+const loading = ref(false)
+const showMember = ref(false)
+const handleMember = () => {
+    showMember.value = true
+}
+const handleAdd = async () => {
+    let res = await axios.post('http://test.ahriknow.cn/api/v1/post/back/client/member/', {
+        member: member.value,
+    }, {
+        headers: {
+            Authorization: localStorage.getItem('token')
+        }
+    })
+    if (res.data.code == 1000000) {
+        message.success("添加成功")
+    } else {
+        message.console.error(res.data.msg)
+    }
+}
 </script>
 
 <template>
-    <NConfigProvider :theme="theme">
+    <NConfigProvider :theme="darkTheme">
         <NMessageProvider>
+            <NGlobalStyle />
+            <router-view />
+            <!-- <NModal
+                v-model:show="showMember"
+                :mask-closable="false"
+                preset="dialog"
+                title="成员管理"
+                @negative-click="showMember = false"
+                negative-text="关闭"
+            >
+                <NInputGroup>
+                    <NInput v-model:value="member" placeholder="Api Path" />
+                    <NButton style="width: 100px;" :loading="loading" @click="handleAdd">添加</NButton>
+                </NInputGroup>
+            </NModal>
             <NModal
                 v-model:show="showModal"
                 :mask-closable="false"
@@ -157,7 +200,7 @@ const handleLogout = () => {
                     style="height: 64px; display: flex; align-items: center; padding: 0 24px;justify-content: space-between;"
                     bordered
                 >
-                    <div>
+                    <NSpace>
                         <NButton @click="handleChangeTheme">{{ language.theme }}</NButton>
                         <NButton
                             v-show="project != 0"
@@ -167,7 +210,7 @@ const handleLogout = () => {
                         <NButton v-else @click="handleLogin">{{ language.login }}</NButton>
                         <Update />
                         <Cloud :project="project" />
-                    </div>
+                    </NSpace>
                     <NButton @click="handleLang">{{ language.next }}</NButton>
                 </n-layout-header>
                 <n-layout
@@ -176,6 +219,7 @@ const handleLogout = () => {
                     style="top: 64px; bottom: 34px; padding: 24px;"
                     :native-scrollbar="false"
                 >
+                    <Project />
                     <NButton @click="handleNewProject">新建项目</NButton>
                     <br />
                     <br />
@@ -200,6 +244,7 @@ const handleLogout = () => {
                                 <td>{{ i.describe }}</td>
                                 <td>
                                     <NButton size="small" @click="handleOpenProject(i)">打开</NButton>
+                                    <NButton size="small" @click="handleMember">用户</NButton>
                                     <NButton size="small">删除</NButton>
                                 </td>
                             </tr>
@@ -227,7 +272,7 @@ const handleLogout = () => {
                     <div>&copy;post.ahriknow.com</div>
                     <div>V 0.0.0</div>
                 </n-layout-footer>
-            </n-layout>
+            </n-layout>-->
         </NMessageProvider>
     </NConfigProvider>
 </template>
@@ -246,16 +291,7 @@ body {
 }
 
 .n-config-provider {
-    height: 100%;
-    width: 100%;
+    height: 100vh;
+    width: 100vw;
 }
-
-/* #app {
-    font-family: Avenir, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-align: center;
-    color: #2c3e50;
-    margin-top: 60px;
-} */
 </style>

@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import Indexed from '@/utils/indexed'
 import {
-    useMessage, NSpace, NButton, NInput, NIcon, NGrid, NGi, NTabs, NTabPane, NTable, NCheckbox, NInputGroup, NSelect, NDivider, NRadioGroup, NRadio
+    useMessage, NSpace, NButton, NInput, NIcon, NGrid, NGi, NTabs, NTabPane, NTable, NTag, NCheckbox, NInputGroup, NSelect, NDivider, NRadioGroup, NRadio
 } from 'naive-ui'
 import {
     CloseOutline,
+    CodeWorking
 } from "@vicons/ionicons5"
 import * as monaco from 'monaco-editor'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
@@ -24,10 +25,15 @@ const { ipcRenderer } = require("electron")
 const db = new Indexed()
 const message = useMessage()
 
-const format = (s) => {
-    if (s) {
-        let date = new Date(s)
-        let res = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
+const format = (str) => {
+    if (str) {
+        let date = new Date(str)
+        let M = date.getMonth() + 1
+        let D = date.getDate()
+        let H = date.getHours()
+        let m = date.getMinutes()
+        let s = date.getSeconds()
+        let res = `${date.getFullYear()}-${M < 10 ? '0' : ''}${M}-${D < 10 ? '0' : ''}${D} ${H < 10 ? '0' : ''}${H}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`
         return res
     }
     return ''
@@ -60,16 +66,14 @@ const api = ref({
     }
 })
 
-const response_data = computed(() => JSON.stringify(api.value.response.data, null, '\t'))
-
-const newKey = ref('')
-const newValue = ref('')
 const path = computed({
     get() {
         let res = api.value.path
         let query = []
         api.value.params.forEach(param => {
-            query.push(`${param.key}=${param.value}`)
+            let k = param.key.trim()
+            if (param.enable && k.length > 0)
+                query.push(`${k}=${param.value.trim()}`)
         })
         if (query.length > 0) {
             res += `?${query.join('&')}`
@@ -85,6 +89,7 @@ let reqInstance;
 let resInstance;
 
 const handleKeyDown = e => {
+    api.value.date = new Date().getTime()
     db.update('api', api.value).then(res => {
         ipcRenderer.send("ipc-event", {
             event: 'change',
@@ -107,17 +112,17 @@ const handleSend = () => {
         } else {
             options.data = {}
             api.value.body.data.forEach(d => {
-                options.data[K.key] = d.value
+                options.data[d.key] = d.value
             })
         }
     }
     if (api.value.headers.length > 0) {
         options.headers = {}
         api.value.headers.forEach(d => {
-            options.headers[K.key] = d.value
+            options.headers[d.key] = d.value
         })
     }
-    ipcRenderer.send("request", options);
+    ipcRenderer.send("request", JSON.parse(JSON.stringify(options)));
 }
 ipcRenderer.on("response", (_, response) => {
     loading.value = false
@@ -165,15 +170,13 @@ window.addEventListener("keydown", e => {
     }
 })
 
-const input = ref(null)
-
 const handleInput = () => {
     if (tab.value == 'Params') {
         api.value.params.push({
             _id: new Date().getTime(),
             enable: true,
-            key: newKey.value,
-            value: newValue.value,
+            key: '',
+            value: '',
             describe: '',
             must: false
         })
@@ -181,8 +184,8 @@ const handleInput = () => {
         api.value.headers.push({
             _id: new Date().getTime(),
             enable: true,
-            key: newKey.value,
-            value: newValue.value,
+            key: '',
+            value: '',
             describe: '',
             must: false
         })
@@ -190,15 +193,12 @@ const handleInput = () => {
         api.value.body.data.push({
             _id: new Date().getTime(),
             enable: true,
-            key: newKey.value,
-            value: newValue.value,
+            key: '',
+            value: '',
             describe: '',
             must: false
         })
     }
-    input.value.blur()
-    newKey.value = ''
-    newValue.value = ''
 }
 
 const handleDelete = _id => {
@@ -293,7 +293,7 @@ onMounted(() => {
                     @blur="handleSave"
                     v-model:value="path"
                     placeholder="Api Path"
-                ></NInput>
+                />
                 <NButton style="width: 100px;" :loading="loading" @click="handleSend">SEND</NButton>
             </NInputGroup>
         </NGi>
@@ -321,21 +321,21 @@ onMounted(() => {
                                         size="small"
                                         v-model:value="param.key"
                                         placeholder="Key"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="param.value"
                                         placeholder="Value"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="param.describe"
                                         placeholder="Describe"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td style="text-align: center;">
                                     <NCheckbox v-model:checked="param.must"></NCheckbox>
@@ -353,22 +353,9 @@ onMounted(() => {
                             <tr>
                                 <td></td>
                                 <td>
-                                    <NInput
-                                        ref="input"
-                                        size="small"
-                                        v-model:value="newKey"
-                                        @input="handleInput"
-                                        placeholder="Key"
-                                    ></NInput>
+                                    <NButton @click="handleInput" size="small">New Param</NButton>
                                 </td>
-                                <td>
-                                    <NInput
-                                        size="small"
-                                        v-model:value="newValue"
-                                        @input="handleInput"
-                                        placeholder="Value"
-                                    ></NInput>
-                                </td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
@@ -401,21 +388,25 @@ onMounted(() => {
                                     <NCheckbox v-model:checked="data.enable"></NCheckbox>
                                 </td>
                                 <td>
-                                    <NInput size="small" v-model:value="data.key" placeholder="Key"></NInput>
+                                    <NInput
+                                        size="small"
+                                        v-model:value="data.key"
+                                        placeholder="Key"
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="data.value"
                                         placeholder="Value"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="data.describe"
                                         placeholder="Describe"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td style="text-align: center;">
                                     <NCheckbox v-model:checked="data.must"></NCheckbox>
@@ -433,22 +424,9 @@ onMounted(() => {
                             <tr>
                                 <td></td>
                                 <td>
-                                    <NInput
-                                        ref="input"
-                                        size="small"
-                                        v-model:value="newKey"
-                                        @input="handleInput"
-                                        placeholder="Key"
-                                    ></NInput>
+                                    <NButton @click="handleInput" size="small">New Data</NButton>
                                 </td>
-                                <td>
-                                    <NInput
-                                        size="small"
-                                        v-model:value="newValue"
-                                        @input="handleInput"
-                                        placeholder="Value"
-                                    ></NInput>
-                                </td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
@@ -478,21 +456,21 @@ onMounted(() => {
                                         size="small"
                                         v-model:value="header.key"
                                         placeholder="Key"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="header.value"
                                         placeholder="Value"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td>
                                     <NInput
                                         size="small"
                                         v-model:value="header.describe"
                                         placeholder="Describe"
-                                    ></NInput>
+                                    />
                                 </td>
                                 <td style="text-align: center;">
                                     <NCheckbox v-model:checked="header.must"></NCheckbox>
@@ -510,22 +488,9 @@ onMounted(() => {
                             <tr>
                                 <td></td>
                                 <td>
-                                    <NInput
-                                        ref="input"
-                                        size="small"
-                                        v-model:value="newKey"
-                                        @input="handleInput"
-                                        placeholder="Key"
-                                    ></NInput>
+                                    <NButton @click="handleInput" size="small">New Header</NButton>
                                 </td>
-                                <td>
-                                    <NInput
-                                        size="small"
-                                        v-model:value="newValue"
-                                        @input="handleInput"
-                                        placeholder="Value"
-                                    ></NInput>
-                                </td>
+                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
@@ -540,6 +505,23 @@ onMounted(() => {
         </NGi>
         <NGi>
             <NTabs default-value="Response" size="small">
+                <template #suffix>
+                    <NButton
+                        style="font-size: 12px; margin-right: 20px"
+                        @click="handleFormat"
+                        size="small"
+                        title="Format"
+                    >
+                        <template #icon>
+                            <NIcon>
+                                <CodeWorking />
+                            </NIcon>
+                        </template>
+                    </NButton>
+                    <NTag
+                        :type="api.response.status == 200 ? 'success' : (api.response.status < 500 ? 'warning' : 'error')"
+                    >{{ api.response.status }}&nbsp;{{ api.response.status != 200 ? api.response.data.detail : '' }}</NTag>
+                </template>
                 <NTabPane name="Response" tab="Response" display-directive="show">
                     <div style="height: 300px;" ref="resEditor"></div>
                     <!-- <n-input
@@ -550,7 +532,7 @@ onMounted(() => {
                         :autosize="{
                             minRows: 3
                         }"
-                    /> -->
+                    />-->
                 </NTabPane>
                 <NTabPane name="Headers" tab="Headers" display-directive="show">
                     <NTable size="small">
@@ -568,13 +550,8 @@ onMounted(() => {
                         </tbody>
                     </NTable>
                 </NTabPane>
-                <template #suffix>
-                    <NButton size="small" @click="handleFormat">Format</NButton>
-                    <p style="font-size: 12px; padding: 0 20px">{{ format(api.date) }}</p>
-                    {{ api.response.status }}
-                    {{ api.response.status > 200 ? api.response.data.detail : '' }}
-                </template>
             </NTabs>
+            <p>Request At: {{ format(api.date) }}</p>
         </NGi>
     </NGrid>
 </template>

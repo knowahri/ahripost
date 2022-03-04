@@ -69,7 +69,7 @@ const handleSubmit2 = () => {
         @negative-click="showModal2 = false"
         negative-text="取消"
     >下载完成，现在进行安装?</NModal>
-    <NButton @click="handleUpdate" :loading="loading">{{ language.update }}</NButton>
+    <NButton @click="handleUpdate" :loading="loading" disabled="">{{ language.update }}</NButton>
 </template>
 
 <style scoped>
